@@ -11,7 +11,7 @@ const protect = async (req, res, next) => {
       token = req.headers.authorization.split(' ')[1];
 
       // Verify token
-      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      const decoded = jwt.verify(token, process.env.JWT_SECRET || 'devsecret');
 
       // Get user from token
       req.user = await User.findById(decoded.id).select('-password');
@@ -60,7 +60,7 @@ const optionalAuth = async (req, res, next) => {
   if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
     try {
       token = req.headers.authorization.split(' ')[1];
-      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      const decoded = jwt.verify(token, process.env.JWT_SECRET || 'devsecret');
       req.user = await User.findById(decoded.id).select('-password');
     } catch (error) {
       // Token is invalid, but we don't fail the request

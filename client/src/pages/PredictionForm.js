@@ -15,24 +15,28 @@ const PredictionForm = () => {
   const navigate = useNavigate();
   const [inputMethod, setInputMethod] = useState('manual'); // 'manual' or 'upload'
   const [isLoading, setIsLoading] = useState(false);
+  const [mode, setMode] = useState('simple'); // 'simple' | 'advanced'
   const [uploadedFile, setUploadedFile] = useState(null);
   const [extractedData, setExtractedData] = useState(null);
 
   const { register, handleSubmit, formState: { errors }, reset } = useForm();
 
-  const healthFields = [
+  const simpleFields = [
     { name: 'age', label: 'Age', type: 'number', min: 1, max: 120, required: true },
     { name: 'gender', label: 'Gender', type: 'select', options: ['Male', 'Female'], required: true },
     { name: 'chestPainType', label: 'Chest Pain Type', type: 'select', options: ['Typical Angina', 'Atypical Angina', 'Non-anginal Pain', 'Asymptomatic'], required: true },
     { name: 'restingBp', label: 'Resting Blood Pressure (mm Hg)', type: 'number', min: 90, max: 200, required: true },
-    { name: 'cholesterol', label: 'Serum Cholesterol (mg/dl)', type: 'number', min: 100, max: 600, required: true },
+    { name: 'cholesterol', label: 'Cholesterol (mg/dl)', type: 'number', min: 100, max: 600, required: true },
+    { name: 'maxHr', label: 'Max Heart Rate', type: 'number', min: 60, max: 202, required: true },
+    { name: 'exerciseAngina', label: 'Exercise Induced Angina', type: 'select', options: ['Yes', 'No'], required: true },
+    { name: 'oldpeak', label: 'ST Depression (oldpeak)', type: 'number', min: 0, max: 6.2, step: 0.1, required: true }
+  ];
+
+  const advancedOnlyFields = [
     { name: 'fastingBs', label: 'Fasting Blood Sugar > 120 mg/dl', type: 'select', options: ['Yes', 'No'], required: true },
     { name: 'restingEcg', label: 'Resting ECG Results', type: 'select', options: ['Normal', 'ST-T Wave Abnormality', 'Left Ventricular Hypertrophy'], required: true },
-    { name: 'maxHr', label: 'Maximum Heart Rate Achieved', type: 'number', min: 60, max: 202, required: true },
-    { name: 'exerciseAngina', label: 'Exercise Induced Angina', type: 'select', options: ['Yes', 'No'], required: true },
-    { name: 'oldpeak', label: 'ST Depression Induced by Exercise', type: 'number', min: 0, max: 6.2, step: 0.1, required: true },
     { name: 'slope', label: 'Slope of Peak Exercise ST Segment', type: 'select', options: ['Upsloping', 'Flat', 'Downsloping'], required: true },
-    { name: 'ca', label: 'Number of Major Vessels Colored by Fluoroscopy', type: 'number', min: 0, max: 4, required: true },
+    { name: 'ca', label: 'Major Vessels (0-4)', type: 'number', min: 0, max: 4, required: true },
     { name: 'thal', label: 'Thalassemia', type: 'select', options: ['Normal', 'Fixed Defect', 'Reversable Defect'], required: true }
   ];
 
@@ -72,20 +76,41 @@ const PredictionForm = () => {
       const slopeMap = { 'Upsloping': 0, 'Flat': 1, 'Downsloping': 2 };
       const thalMap = { 'Normal': 0, 'Fixed Defect': 1, 'Reversable Defect': 2 };
 
-      const predictionData = {
+      // Defaults for simple mode
+      const defaults = {
+        fbs: 0,
+        restecg: 0,
+        slope: 1,
+        ca: 0,
+        thal: 0
+      };
+
+      const base = {
         age: Number(data.age),
         sex: data.gender === 'Male' ? 1 : 0,
         cp: cpMap[data.chestPainType],
         trestbps: Number(data.restingBp),
         chol: Number(data.cholesterol),
-        fbs: data.fastingBs === 'Yes' ? 1 : 0,
-        restecg: restEcgMap[data.restingEcg],
+        fbs: data.fastingBs ? (data.fastingBs === 'Yes' ? 1 : 0) : undefined,
+        restecg: data.restingEcg ? restEcgMap[data.restingEcg] : undefined,
         thalach: Number(data.maxHr),
         exang: data.exerciseAngina === 'Yes' ? 1 : 0,
         oldpeak: Number(data.oldpeak),
-        slope: slopeMap[data.slope],
-        ca: Number(data.ca),
-        thal: thalMap[data.thal]
+        slope: data.slope ? slopeMap[data.slope] : undefined,
+        ca: data.ca !== undefined ? Number(data.ca) : undefined,
+        thal: data.thal ? thalMap[data.thal] : undefined
+      };
+
+      const predictionData = mode === 'simple' ? { ...defaults, ...base } : base;
+
+      // Ensure all required numeric fields are present for backend schema
+      const filled = {
+        ...predictionData,
+        fbs: predictionData.fbs ?? defaults.fbs,
+        restecg: predictionData.restecg ?? defaults.restecg,
+        slope: predictionData.slope ?? defaults.slope,
+        ca: predictionData.ca ?? defaults.ca,
+        thal: predictionData.thal ?? defaults.thal
       };
 
       // Call prediction API
@@ -95,15 +120,23 @@ const PredictionForm = () => {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${localStorage.getItem('token')}`
         },
-        body: JSON.stringify(predictionData)
+        body: JSON.stringify(filled)
       });
 
+      const resultJson = await response.json().catch(() => ({}));
+
       if (response.ok) {
-        const result = await response.json();
+        const result = resultJson;
         toast.success('Prediction completed successfully!');
-        navigate('/prediction-result', { state: { prediction: result.prediction || result } });
+        const predictionObj = result.prediction || result;
+        if (predictionObj && predictionObj._id) {
+          navigate(`/result/${predictionObj._id}`, { state: { prediction: predictionObj } });
+        } else {
+          navigate('/prediction', { replace: true });
+        }
       } else {
-        throw new Error('Prediction failed');
+        const msg = resultJson?.message || 'Prediction failed';
+        throw new Error(msg);
       }
     } catch (error) {
       console.error('Prediction error:', error);
@@ -132,12 +165,20 @@ const PredictionForm = () => {
         body: formData
       });
 
+      const resultJson = await response.json().catch(() => ({}));
+
       if (response.ok) {
-        const result = await response.json();
+        const result = resultJson;
         toast.success('Prediction completed successfully!');
-        navigate('/prediction-result', { state: { prediction: result.prediction || result } });
+        const predictionObj = result.prediction || result;
+        if (predictionObj && predictionObj._id) {
+          navigate(`/result/${predictionObj._id}`, { state: { prediction: predictionObj } });
+        } else {
+          navigate('/prediction', { replace: true });
+        }
       } else {
-        throw new Error('Upload prediction failed');
+        const msg = resultJson?.message || 'Upload prediction failed';
+        throw new Error(msg);
       }
     } catch (error) {
       console.error('Upload error:', error);
@@ -196,14 +237,29 @@ const PredictionForm = () => {
         {inputMethod === 'manual' && (
           <div className="bg-white rounded-lg shadow">
             <div className="px-6 py-4 border-b border-gray-200">
-              <h2 className="text-xl font-semibold text-gray-900">Health Information</h2>
-              <p className="text-sm text-gray-600 mt-1">
-                Please provide accurate health data for the best prediction results
-              </p>
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-xl font-semibold text-gray-900">Health Information</h2>
+                  <p className="text-sm text-gray-600 mt-1">
+                    {mode === 'simple' ? 'Basic inputs (recommended)' : 'Advanced medical inputs'}
+                  </p>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <span className="text-sm text-gray-600">Mode:</span>
+                  <select
+                    value={mode}
+                    onChange={(e) => setMode(e.target.value)}
+                    className="input"
+                  >
+                    <option value="simple">Simple</option>
+                    <option value="advanced">Advanced</option>
+                  </select>
+                </div>
+              </div>
             </div>
             <form onSubmit={handleSubmit(onSubmit)} className="p-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {healthFields.map((field) => (
+                {(mode === 'simple' ? simpleFields : [...simpleFields, ...advancedOnlyFields]).map((field) => (
                   <div key={field.name} className="form-group">
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                       {field.label}

@@ -7,6 +7,7 @@ This script loads a pre-trained model and makes predictions on new data.
 import sys
 import json
 import pickle
+import os
 import numpy as np
 import pandas as pd
 from sklearn.ensemble import RandomForestClassifier
@@ -14,15 +15,29 @@ from sklearn.preprocessing import StandardScaler
 import warnings
 warnings.filterwarnings('ignore')
 
+def _resolve_model_path(filename: str) -> str:
+    """Resolve model file path, checking ml_service and server directories."""
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+    candidates = [
+        os.path.join(base_dir, filename),
+        os.path.join(base_dir, '..', 'server', filename),
+    ]
+    for path in candidates:
+        if os.path.exists(path):
+            return path
+    # Default to ml_service path for saving newly trained models
+    return os.path.join(base_dir, filename)
+
+
 def load_model():
     """Load the pre-trained Random Forest model and scaler."""
     try:
         # Load the trained model
-        with open('heart_disease_model.pkl', 'rb') as f:
+        with open(_resolve_model_path('heart_disease_model.pkl'), 'rb') as f:
             model = pickle.load(f)
         
         # Load the scaler
-        with open('heart_disease_scaler.pkl', 'rb') as f:
+        with open(_resolve_model_path('heart_disease_scaler.pkl'), 'rb') as f:
             scaler = pickle.load(f)
         
         return model, scaler
@@ -98,11 +113,13 @@ def train_new_model():
         )
         rf_model.fit(X_train_scaled, y_train)
         
-        # Save model and scaler
-        with open('heart_disease_model.pkl', 'wb') as f:
+        # Save model and scaler next to this script
+        model_path = _resolve_model_path('heart_disease_model.pkl')
+        scaler_path = _resolve_model_path('heart_disease_scaler.pkl')
+        with open(model_path, 'wb') as f:
             pickle.dump(rf_model, f)
         
-        with open('heart_disease_scaler.pkl', 'wb') as f:
+        with open(scaler_path, 'wb') as f:
             pickle.dump(scaler, f)
         
         # Log to stderr to avoid breaking JSON output expected by the Node.js process

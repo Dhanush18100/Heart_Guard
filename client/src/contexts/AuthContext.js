@@ -87,7 +87,23 @@ export const AuthProvider = ({ children }) => {
 
   const updateProfile = async (profileData) => {
     try {
-      const response = await axios.put('/api/auth/profile', profileData);
+      const normalized = { ...profileData };
+      // Drop empty strings
+      Object.keys(normalized).forEach((k) => {
+        if (normalized[k] === '' || normalized[k] === null) delete normalized[k];
+      });
+      if (typeof normalized.gender === 'string') {
+        const v = normalized.gender.toLowerCase();
+        if (['male','female','other'].includes(v)) normalized.gender = v;
+        else delete normalized.gender;
+      }
+      if (typeof normalized.address === 'string' && normalized.address.trim()) {
+        normalized.address = { street: normalized.address.trim() };
+      }
+      if (typeof normalized.dateOfBirth === 'string' && !normalized.dateOfBirth.trim()) {
+        delete normalized.dateOfBirth;
+      }
+      const response = await axios.put('/api/auth/profile', normalized);
       setUser(response.data);
       toast.success('Profile updated successfully!');
       return { success: true };
@@ -115,7 +131,8 @@ export const AuthProvider = ({ children }) => {
 
   const updateLocation = async (latitude, longitude) => {
     try {
-      await axios.put('/api/auth/location', { latitude, longitude });
+      const body = typeof latitude === 'object' && latitude !== null ? latitude : { latitude, longitude };
+      await axios.put('/api/auth/location', body);
       toast.success('Location updated successfully!');
       return { success: true };
     } catch (error) {

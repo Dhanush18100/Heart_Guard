@@ -13,6 +13,7 @@ import History from './pages/History';
 import Profile from './pages/Profile';
 import AdminDashboard from './pages/AdminDashboard';
 import DoctorDashboard from './pages/DoctorDashboard';
+import NearbyDoctors from './pages/NearbyDoctors';
 import './index.css';
 
 // Protected Route Component
@@ -89,6 +90,11 @@ function App() {
               <Route path="/profile" element={
                 <ProtectedRoute>
                   <Profile />
+                </ProtectedRoute>
+              } />
+              <Route path="/nearby-doctors" element={
+                <ProtectedRoute>
+                  <NearbyDoctors />
                 </ProtectedRoute>
               } />
 

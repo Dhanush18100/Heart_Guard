@@ -8,7 +8,8 @@ const router = express.Router();
 
 // Generate JWT Token
 const generateToken = (id) => {
-  return jwt.sign({ id }, process.env.JWT_SECRET, {
+  const secret = process.env.JWT_SECRET || 'devsecret';
+  return jwt.sign({ id }, secret, {
     expiresIn: process.env.JWT_EXPIRE || '7d'
   });
 };
@@ -214,8 +215,8 @@ router.get('/profile', protect, async (req, res) => {
 // @access  Private
 router.put('/profile', protect, [
   body('name').optional().trim().isLength({ min: 2, max: 50 }).withMessage('Name must be between 2 and 50 characters'),
-  body('gender').optional().isIn(['male', 'female', 'other']).withMessage('Invalid gender'),
-  body('phone').optional().matches(/^[\+]?[1-9][\d]{0,15}$/).withMessage('Invalid phone number')
+  body('gender').optional().isString().customSanitizer(v => String(v).toLowerCase()).isIn(['male', 'female', 'other']).withMessage('Invalid gender'),
+  body('phone').optional().matches(/^[\+]?([\d\s\-\(\)]){7,20}$/).withMessage('Invalid phone number')
 ], async (req, res) => {
   try {
     // Check for validation errors
@@ -238,8 +239,18 @@ router.put('/profile', protect, [
     if (name) user.name = name;
     if (gender) user.gender = gender;
     if (phone) user.phone = phone;
-    if (address) user.address = address;
-    if (dateOfBirth) user.dateOfBirth = dateOfBirth;
+    if (address) {
+      // Accept string or object; map string to address.street
+      if (typeof address === 'string') {
+        user.address = { street: address };
+      } else if (typeof address === 'object') {
+        user.address = address;
+      }
+    }
+    if (dateOfBirth) {
+      const d = new Date(dateOfBirth);
+      if (!isNaN(d.getTime())) user.dateOfBirth = d;
+    }
 
     const updatedUser = await user.save();
 

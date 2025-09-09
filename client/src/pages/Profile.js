@@ -18,7 +18,7 @@ import {
 import toast from 'react-hot-toast';
 
 const Profile = () => {
-  const { user, updateProfile, updatePassword, updateLocation } = useAuth();
+  const { user, updateProfile, changePassword, updateLocation } = useAuth();
   const [isEditing, setIsEditing] = useState(false);
   const [isEditingPassword, setIsEditingPassword] = useState(false);
   const [isEditingLocation, setIsEditingLocation] = useState(false);
@@ -31,7 +31,9 @@ const Profile = () => {
       phone: user?.phone || '',
       dateOfBirth: user?.dateOfBirth ? user.dateOfBirth.split('T')[0] : '',
       gender: user?.gender || '',
-      address: user?.address || ''
+      address: (user?.address && (user.address.street || user.address.city || user.address.state || user.address.zipCode || user.address.country))
+        ? [user.address.street, user.address.city, user.address.state, user.address.zipCode, user.address.country].filter(Boolean).join(', ')
+        : ''
     }
   });
 
@@ -46,7 +48,9 @@ const Profile = () => {
         phone: user.phone || '',
         dateOfBirth: user.dateOfBirth ? user.dateOfBirth.split('T')[0] : '',
         gender: user.gender || '',
-        address: user.address || ''
+        address: (user.address && (user.address.street || user.address.city || user.address.state || user.address.zipCode || user.address.country))
+          ? [user.address.street, user.address.city, user.address.state, user.address.zipCode, user.address.country].filter(Boolean).join(', ')
+          : ''
       });
     }
   }, [user, reset]);
@@ -72,7 +76,7 @@ const Profile = () => {
 
     setIsLoading(true);
     try {
-      await updatePassword(data.currentPassword, data.newPassword);
+      await changePassword(data.currentPassword, data.newPassword);
       setIsEditingPassword(false);
       resetPassword();
       toast.success('Password updated successfully!');
@@ -86,10 +90,7 @@ const Profile = () => {
   const onLocationSubmit = async (data) => {
     setIsLoading(true);
     try {
-      await updateLocation({
-        type: 'Point',
-        coordinates: [parseFloat(data.longitude), parseFloat(data.latitude)]
-      });
+      await updateLocation(parseFloat(data.latitude), parseFloat(data.longitude));
       setIsEditingLocation(false);
       resetLocation();
       toast.success('Location updated successfully!');
@@ -200,8 +201,8 @@ const Profile = () => {
                           message: 'Invalid email address'
                         }
                       })}
-                      className="input w-full"
-                      disabled={!isEditing}
+                      className="input w-full opacity-80 cursor-not-allowed"
+                      disabled
                     />
                     {errors.email && (
                       <p className="text-red-500 text-sm mt-1">{errors.email.message}</p>

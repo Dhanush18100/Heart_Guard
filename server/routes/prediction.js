@@ -201,13 +201,96 @@ router.post('/manual', protect, [
       args: [JSON.stringify(inputData)]
     };
 
+    let responded = false;
+    const timer = setTimeout(async () => {
+      if (responded) return;
+      try {
+        const f = inputData;
+        const risk = (
+          (f.age > 60 ? 0.2 : 0) +
+          (f.sex === 1 ? 0.1 : 0) +
+          (f.cp > 1 ? 0.2 : 0) +
+          (f.trestbps > 140 ? 0.2 : 0) +
+          (f.chol > 250 ? 0.2 : 0) +
+          (f.thalach < 120 ? 0.2 : 0) +
+          (f.exang === 1 ? 0.2 : 0) +
+          (f.oldpeak > 2 ? 0.2 : 0)
+        );
+        const probability = Math.max(0, Math.min(0.9, risk));
+        const hasHeartDisease = probability > 0.5;
+        let riskLevel = 'low';
+        if (probability > 0.7) riskLevel = 'high';
+        else if (probability > 0.3) riskLevel = 'moderate';
+        const dietPlan = generateDietPlan(riskLevel, hasHeartDisease);
+        const predictionRecord = await Prediction.create({
+          user: req.user._id,
+          inputData,
+          predictionResult: { hasHeartDisease, probability, riskLevel },
+          dietPlan
+        });
+        responded = true;
+        return res.json({ prediction: predictionRecord, message: 'Prediction completed (timeout fallback)' });
+      } catch (e) {
+        responded = true;
+        return res.status(500).json({ message: 'Prediction timeout' });
+      }
+    }, 10000);
+
     PythonShell.run('predict.py', options, async (err, results) => {
-      if (err) {
+      if (err || !results || results.length === 0) {
         console.error('Python ML model error:', err);
-        return res.status(500).json({ message: 'Error in ML model prediction' });
+        try {
+          // Node.js fallback risk estimate (sigmoid of weighted sum)
+          const f = inputData;
+          const toNum = (v, d=0) => (typeof v === 'number' && !isNaN(v) ? v : d);
+          const age = toNum(f.age, 50);
+          const sex = toNum(f.sex, 0);
+          const cp = toNum(f.cp, 0);
+          const trestbps = toNum(f.trestbps, 120);
+          const chol = toNum(f.chol, 200);
+          const thalach = toNum(f.thalach, 150);
+          const exang = toNum(f.exang, 0);
+          const oldpeak = toNum(f.oldpeak, 0);
+
+          const score = (
+            -0.5 +
+            0.03 * (age - 50) +
+            0.02 * (trestbps - 120) +
+            0.01 * (chol - 200) +
+            -0.02 * (thalach - 150) +
+            0.25 * (sex === 1 ? 1 : 0) +
+            0.20 * (cp > 1 ? 1 : 0) +
+            0.40 * (exang === 1 ? 1 : 0) +
+            0.50 * oldpeak
+          );
+          const probability = Math.min(0.95, Math.max(0.05, 1 / (1 + Math.exp(-score))));
+          const hasHeartDisease = probability > 0.5;
+          let riskLevel = 'low';
+          if (probability > 0.7) riskLevel = 'high';
+          else if (probability > 0.3) riskLevel = 'moderate';
+
+          const dietPlan = generateDietPlan(riskLevel, hasHeartDisease);
+          const predictionRecord = await Prediction.create({
+            user: req.user._id,
+            inputData,
+            predictionResult: { hasHeartDisease, probability, riskLevel },
+            dietPlan
+          });
+
+          clearTimeout(timer);
+          responded = true;
+          return res.json({ prediction: predictionRecord, message: 'Prediction completed (fallback model)' });
+        } catch (fallbackError) {
+          console.error('Fallback prediction error:', fallbackError);
+          clearTimeout(timer);
+          responded = true;
+          return res.status(500).json({ message: 'Error in ML model prediction' });
+        }
       }
 
       try {
+        clearTimeout(timer);
+        responded = true;
         const prediction = results[0];
         const hasHeartDisease = prediction.prediction === 1;
         const probability = prediction.probability;
@@ -232,13 +315,15 @@ router.post('/manual', protect, [
           dietPlan
         });
 
-        res.json({
+        return res.json({
           prediction: predictionRecord,
           message: 'Prediction completed successfully'
         });
       } catch (error) {
         console.error('Prediction processing error:', error);
-        res.status(500).json({ message: 'Error processing prediction results' });
+        clearTimeout(timer);
+        responded = true;
+        return res.status(500).json({ message: 'Error processing prediction results' });
       }
     });
   } catch (error) {

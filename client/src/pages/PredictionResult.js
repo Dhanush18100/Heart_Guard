@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { 
   Heart, 
@@ -18,23 +18,36 @@ import toast from 'react-hot-toast';
 
 const PredictionResult = () => {
   const location = useLocation();
+  const { id } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
-  const [prediction] = useState(location.state?.prediction || null);
+  const [prediction, setPrediction] = useState(location.state?.prediction || null);
   const [nearbyDoctors, setNearbyDoctors] = useState([]);
   const [isLoadingDoctors, setIsLoadingDoctors] = useState(false);
 
   useEffect(() => {
-    if (!prediction) {
-      // If no prediction data, redirect to prediction form
-      navigate('/prediction');
-      return;
-    }
-    
-    // Fetch nearby doctors
-    fetchNearbyDoctors();
+    const load = async () => {
+      try {
+        if (!prediction && id) {
+          const resp = await fetch(`/api/prediction/${id}`, {
+            headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+          });
+          if (resp.ok) {
+            const data = await resp.json();
+            setPrediction(data);
+          } else {
+            navigate('/prediction', { replace: true });
+            return;
+          }
+        }
+        fetchNearbyDoctors();
+      } catch (e) {
+        navigate('/prediction', { replace: true });
+      }
+    };
+    load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [prediction, navigate]);
+  }, [prediction, id, navigate]);
 
   const fetchNearbyDoctors = async () => {
     if (!user?.location) {
@@ -118,8 +131,36 @@ const PredictionResult = () => {
   };
 
   const downloadReport = () => {
-    // Generate and download PDF report
-    toast.success('Report download started');
+    try {
+      const report = {
+        title: 'Heart Disease Prediction Report',
+        generatedAt: new Date().toISOString(),
+        user: user ? { id: user._id, name: user.name, email: user.email } : null,
+        prediction: prediction,
+        summary: {
+          probability: Number(probability || 0),
+          hasHeartDisease: !!hasHeartDisease,
+          riskLevel: getRiskLevel(Number(probability || 0)).level,
+          confidence
+        },
+        dietPlan: generateDietPlan(getRiskLevel(Number(probability || 0)).level)
+      };
+
+      const blob = new Blob([JSON.stringify(report, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      const fileId = prediction?._id || 'prediction';
+      a.href = url;
+      a.download = `prediction-report-${fileId}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      toast.success('Report downloaded');
+    } catch (e) {
+      console.error('Report download error:', e);
+      toast.error('Failed to download report');
+    }
   };
 
   const shareResult = () => {
@@ -136,9 +177,7 @@ const PredictionResult = () => {
     }
   };
 
-  if (!prediction) {
-    return null;
-  }
+  if (!prediction) return null;
 
   // Normalize prediction shape from server
   const probability = prediction.predictionResult ? prediction.predictionResult.probability : prediction.probability;
