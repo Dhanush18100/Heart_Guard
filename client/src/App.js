@@ -93,11 +93,11 @@ function App() {
                   <Profile />
                 </ProtectedRoute>
               } />
-              <Route path="/nearby-doctors" element={
+              {/* <Route path="/nearby-doctors" element={
                 <ProtectedRoute>
                   <NearbyDoctors />
                 </ProtectedRoute>
-              } />
+              } /> */}
 
              
 
