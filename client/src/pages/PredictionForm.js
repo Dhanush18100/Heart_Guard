@@ -219,7 +219,7 @@ const PredictionForm = () => {
               <FileText className="w-5 h-5 inline mr-2" />
               Manual Input
             </button>
-            <button
+            {/* <button
               onClick={() => setInputMethod('upload')}
               className={`flex-1 py-3 px-4 rounded-lg border-2 transition-colors ${
                 inputMethod === 'upload'
@@ -229,7 +229,7 @@ const PredictionForm = () => {
             >
               <Upload className="w-5 h-5 inline mr-2" />
               Upload Report
-            </button>
+            </button> */}
           </div>
         </div>
 

@@ -13,6 +13,10 @@ export const useAuth = () => {
 };
 
 export const AuthProvider = ({ children }) => {
+
+  axios.defaults.withCredentials=true;
+
+  const backendUrl='http://localhost:5000'
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [token, setToken] = useState(localStorage.getItem('token'));
@@ -147,6 +151,7 @@ export const AuthProvider = ({ children }) => {
     loading,
     token,
     login,
+    backendUrl,
     register,
     logout,
     updateProfile,

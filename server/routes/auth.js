@@ -3,6 +3,10 @@ const jwt = require('jsonwebtoken');
 const { body, validationResult } = require('express-validator');
 const User = require('../models/User');
 const { protect } = require('../middleware/auth');
+const { PASSWORD_RESET_TEMPLATE } = require('../config/emailTemplates');
+const transporter = require('../config/nodemailer');
+const bcrypt = require('bcryptjs');
+
 
 const router = express.Router();
 
@@ -261,79 +265,98 @@ router.put('/profile', protect, [
   }
 });
 
-// @desc    Update user location
-// @route   PUT /api/auth/location
-// @access  Private
-router.put('/location', protect, [
-  body('latitude').isFloat({ min: -90, max: 90 }).withMessage('Invalid latitude'),
-  body('longitude').isFloat({ min: -180, max: 180 }).withMessage('Invalid longitude')
-], async (req, res) => {
+//password reset otp
+router.post('/sent-reset-otp', async (req, res) => {
+  const { email } = req.body;
+  if (!email) return res.json({ success: false, message: "Email is required" });
+
   try {
-    // Check for validation errors
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({ 
-        message: 'Validation failed', 
-        errors: errors.array() 
-      });
-    }
+    const user = await User.findOne({ email });
+    if (!user) return res.json({ success: false, message: "User not found" });
 
-    const { latitude, longitude } = req.body;
-
-    const user = await User.findById(req.user._id);
-    if (!user) {
-      return res.status(404).json({ message: 'User not found' });
-    }
-
-    user.location.coordinates = [longitude, latitude];
+    const otp = String(Math.floor(100000 + Math.random() * 900000));
+    user.resetOtp = otp;
+    user.resetOtpExpireAt = Date.now() + 15 * 60 * 1000;
     await user.save();
 
-    res.json({ message: 'Location updated successfully' });
+    const mailOptions = {
+      from: process.env.SENDER_EMAIL,
+      to: user.email,
+      subject: "Password Reset OTP",
+      html: PASSWORD_RESET_TEMPLATE.replace("{{otp}}", otp).replace("{{email}}", user.email)
+    };
+
+    await transporter.sendMail(mailOptions);
+    return res.json({ success: true, message: "OTP sent to your email" });
+
   } catch (error) {
-    console.error('Location update error:', error);
-    res.status(500).json({ message: 'Server error while updating location' });
+    return res.json({ success: false, message: error.message });
   }
 });
 
-// @desc    Change password
-// @route   PUT /api/auth/change-password
-// @access  Private
-router.put('/change-password', protect, [
-  body('currentPassword').notEmpty().withMessage('Current password is required'),
-  body('newPassword').isLength({ min: 6 }).withMessage('New password must be at least 6 characters')
-], async (req, res) => {
+
+router.post('/reset-password', async (req, res) => {
+  const { email, otp, newPassword } = req.body;
+  if (!email || !otp || !newPassword) {
+    return res.json({ success: false, message: "Email, OTP, and new password are required" });
+  }
+
   try {
-    // Check for validation errors
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({ 
-        message: 'Validation failed', 
-        errors: errors.array() 
-      });
+    const user = await User.findOne({ email });
+    if (!user) return res.json({ success: false, message: "User not found" });
+
+    if (user.resetOtp === "" || user.resetOtp !== otp) {
+      return res.json({ success: false, message: "Invalid OTP" });
     }
 
-    const { currentPassword, newPassword } = req.body;
-
-    const user = await User.findById(req.user._id).select('+password');
-    if (!user) {
-      return res.status(404).json({ message: 'User not found' });
+    if (user.resetOtpExpireAt < Date.now()) {
+      return res.json({ success: false, message: "OTP expired" });
     }
 
-    // Check current password
-    const isMatch = await user.comparePassword(currentPassword);
-    if (!isMatch) {
-      return res.status(400).json({ message: 'Current password is incorrect' });
-    }
-
-    // Update password
+    // const hashedPassword = await bcrypt.hash(newPassword, 10);
     user.password = newPassword;
+    user.resetOtp = "";
+    user.resetOtpExpireAt = 0;
     await user.save();
 
-    res.json({ message: 'Password changed successfully' });
+    return res.json({ success: true, message: "Password reset successfully" });
   } catch (error) {
-    console.error('Password change error:', error);
-    res.status(500).json({ message: 'Server error while changing password' });
+    return res.json({ success: false, message: error.message });
   }
 });
+
+
+router.post('/verify-reset-otp', async (req, res) => {
+  const { email, otp } = req.body;
+ 
+
+
+  if (!email || !otp) {
+    return res.json({ success: false, message: "Email and OTP are required" });
+  }
+
+  try {
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.json({ success: false, message: "User not found" });
+    }
+
+    // Check if OTP exists and matches
+    if (!user.resetOtp || user.resetOtp !== otp) {
+      return res.json({ success: false, message: "Invalid OTP" });
+    }
+
+    // Check if OTP has expired
+    if (user.resetOtpExpireAt < Date.now()) {
+      return res.json({ success: false, message: "OTP expired" });
+    }
+
+    return res.json({ success: true, message: "OTP verified successfully" });
+  } catch (error) {
+    console.error("OTP verification error:", error);
+    return res.json({ success: false, message: error.message });
+  }
+});
+
 
 module.exports = router;

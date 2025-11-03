@@ -11,10 +11,10 @@ import PredictionForm from './pages/PredictionForm';
 import PredictionResult from './pages/PredictionResult';
 import History from './pages/History';
 import Profile from './pages/Profile';
-import AdminDashboard from './pages/AdminDashboard';
-import DoctorDashboard from './pages/DoctorDashboard';
 import NearbyDoctors from './pages/NearbyDoctors';
 import './index.css';
+import ResetPassword from './pages/ResetPassword';
+
 
 // Protected Route Component
 const ProtectedRoute = ({ children, allowedRoles = ['user', 'admin', 'doctor'] }) => {
@@ -65,6 +65,7 @@ function App() {
               <Route path="/" element={<Home />} />
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
+              <Route path='/reset-password' element={<ResetPassword/>}/>
 
               {/* Protected User Routes */}
               <Route path="/dashboard" element={
@@ -98,19 +99,7 @@ function App() {
                 </ProtectedRoute>
               } />
 
-              {/* Admin Routes */}
-              <Route path="/admin" element={
-                <AdminRoute>
-                  <AdminDashboard />
-                </AdminRoute>
-              } />
-
-              {/* Doctor Routes */}
-              <Route path="/doctor" element={
-                <DoctorRoute>
-                  <DoctorDashboard />
-                </DoctorRoute>
-              } />
+             
 
               {/* Catch all route */}
               <Route path="*" element={<Navigate to="/" replace />} />
