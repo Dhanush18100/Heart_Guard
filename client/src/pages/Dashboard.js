@@ -42,13 +42,13 @@ const Dashboard = () => {
       action: () => navigate('/history'),
       color: 'bg-green-500 hover:bg-green-600'
     },
-    {
-      title: 'Find Doctors',
-      description: 'Locate nearby cardiologists',
-      icon: <MapPin className="w-8 h-8" />,
-      action: () => navigate('/nearby-doctors'),
-      color: 'bg-purple-500 hover:bg-purple-600'
-    },
+    // {
+    //   title: 'Find Doctors',
+    //   description: 'Locate nearby cardiologists',
+    //   icon: <MapPin className="w-8 h-8" />,
+    //   action: () => navigate('/nearby-doctors'),
+    //   color: 'bg-purple-500 hover:bg-purple-600'
+    // },
     {
       title: 'Health Profile',
       description: 'Update your health information',
