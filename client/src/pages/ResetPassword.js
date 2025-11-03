@@ -96,7 +96,7 @@ const ResetPassword = () => {
   }
 
   return (
-    <div className='flex items-center justify-center min-h-screen bg-gradient-to-br from-blue-200 to-purple-400'>
+    <div className='flex items-center justify-center min-h-screen bg-gradient-to-br from-primary-50 via-white to-secondary-50'>
       <img
         onClick={() => navigate('/')}
         src={assets.logo}

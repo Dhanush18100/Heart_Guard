@@ -40,18 +40,18 @@ const ProtectedRoute = ({ children, allowedRoles = ['user', 'admin', 'doctor'] }
 };
 
 // Admin Route Component
-const AdminRoute = ({ children }) => (
-  <ProtectedRoute allowedRoles={['admin']}>
-    {children}
-  </ProtectedRoute>
-);
+// const AdminRoute = ({ children }) => (
+//   <ProtectedRoute allowedRoles={['admin']}>
+//     {children}
+//   </ProtectedRoute>
+// );
 
 // Doctor Route Component
-const DoctorRoute = ({ children }) => (
-  <ProtectedRoute allowedRoles={['admin', 'doctor']}>
-    {children}
-  </ProtectedRoute>
-);
+// const DoctorRoute = ({ children }) => (
+//   <ProtectedRoute allowedRoles={['admin', 'doctor']}>
+//     {children}
+//   </ProtectedRoute>
+// );
 
 function App() {
   return (
