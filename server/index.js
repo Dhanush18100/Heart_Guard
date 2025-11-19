@@ -8,6 +8,7 @@ require('dotenv').config();
 const authRoutes = require('./routes/auth');
 const predictionRoutes = require('./routes/prediction');
 const userRoutes = require('./routes/user');
+const dashboardRoutes = require('./routes/dashboard');
 
 
 
@@ -66,6 +67,8 @@ mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/heart-dis
 app.use('/api/auth', authRoutes);
 app.use('/api/prediction', predictionRoutes);
 app.use('/api/user', userRoutes);
+
+app.use('/api', dashboardRoutes);
 
 
 

@@ -59,7 +59,6 @@ const Home = () => {
   const benefits = [
     'Early detection of heart disease risk factors',
     'Personalized diet and lifestyle recommendations',
-    'Access to nearby cardiologists and hospitals',
     'Comprehensive health data analysis',
     'Regular health monitoring and tracking',
     'Professional medical insights and guidance'

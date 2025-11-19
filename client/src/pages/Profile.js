@@ -16,8 +16,10 @@ import {
   Settings
 } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { useNavigate } from 'react-router-dom';
 
 const Profile = () => {
+  const navigate=useNavigate();
   const { user, updateProfile, changePassword, updateLocation } = useAuth();
   const [isEditing, setIsEditing] = useState(false);
   const [isEditingPassword, setIsEditingPassword] = useState(false);
@@ -372,92 +374,7 @@ const Profile = () => {
             </div>
 
             {/* Location Settings */}
-            <div className="bg-white rounded-lg shadow mt-8">
-              <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
-                <h2 className="text-xl font-semibold text-gray-900">Location Settings</h2>
-                <button
-                  onClick={() => setIsEditingLocation(!isEditingLocation)}
-                  className="btn btn-outline btn-sm"
-                >
-                  {isEditingLocation ? <X className="w-4 h-4" /> : <Edit className="w-4 h-4" />}
-                  {isEditingLocation ? 'Cancel' : 'Update'}
-                </button>
-              </div>
-
-              {isEditingLocation && (
-                <form onSubmit={handleLocationSubmit(onLocationSubmit)} className="p-6">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="form-group">
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Latitude
-                      </label>
-                      <input
-                        type="number"
-                        step="any"
-                        {...registerLocation('latitude', { 
-                          required: 'Latitude is required',
-                          min: -90,
-                          max: 90
-                        })}
-                        className="input w-full"
-                        placeholder="e.g., 40.7128"
-                      />
-                      {locationErrors.latitude && (
-                        <p className="text-red-500 text-sm mt-1">{locationErrors.latitude.message}</p>
-                      )}
-                    </div>
-
-                    <div className="form-group">
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Longitude
-                      </label>
-                      <input
-                        type="number"
-                        step="any"
-                        {...registerLocation('longitude', { 
-                          required: 'Longitude is required',
-                          min: -180,
-                          max: 180
-                        })}
-                        className="input w-full"
-                        placeholder="e.g., -74.0060"
-                      />
-                      {locationErrors.longitude && (
-                        <p className="text-red-500 text-sm mt-1">{locationErrors.longitude.message}</p>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="mt-4">
-                    <button
-                      type="button"
-                      onClick={getCurrentLocation}
-                      className="btn btn-outline"
-                    >
-                      <MapPin className="w-4 h-4 mr-2" />
-                      Use Current Location
-                    </button>
-                  </div>
-
-                  <div className="mt-6 flex justify-end space-x-4">
-                    <button
-                      type="button"
-                      onClick={() => setIsEditingLocation(false)}
-                      className="btn btn-secondary"
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      type="submit"
-                      disabled={isLoading}
-                      className="btn btn-primary"
-                    >
-                      {isLoading ? 'Updating...' : 'Update Location'}
-                    </button>
-                  </div>
-                </form>
-              )}
-            </div>
+           
           </div>
 
           {/* Sidebar */}
@@ -488,13 +405,13 @@ const Profile = () => {
                   <span className="text-gray-600">Phone:</span>
                   <span className="ml-auto font-medium">{user?.phone || 'Not specified'}</span>
                 </div>
-                <div className="flex items-center">
+                {/* <div className="flex items-center">
                   <MapPin className="w-4 h-4 text-gray-400 mr-3" />
                   <span className="text-gray-600">Location:</span>
                   <span className="ml-auto font-medium">
                     {user?.location ? 'Set' : 'Not set'}
                   </span>
-                </div>
+                </div> */}
               </div>
             </div>
 
@@ -527,11 +444,11 @@ const Profile = () => {
             <div className="bg-white rounded-lg shadow p-6">
               <h3 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h3>
               <div className="space-y-3">
-                <button className="w-full btn btn-outline btn-sm justify-start">
+                <button onClick={()=>navigate('/prediction')} className="w-full btn btn-outline btn-sm justify-start">
                   <Heart className="w-4 h-4 mr-2" />
                   Make Prediction
                 </button>
-                <button className="w-full btn btn-outline btn-sm justify-start">
+                <button nClick={()=>navigate('/history')} className="w-full btn btn-outline btn-sm justify-start">
                   <Activity className="w-4 h-4 mr-2" />
                   View History
                 </button>

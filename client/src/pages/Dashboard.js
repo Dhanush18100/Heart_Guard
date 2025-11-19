@@ -23,9 +23,27 @@ const Dashboard = () => {
   });
 
   useEffect(() => {
-    // Fetch user stats and recent predictions
-    // This would typically call an API endpoint
-  }, []);
+   const fetchStats = async () => {
+    try {
+      const res = await fetch(`/api/dashboard-stats/${user._id}`);
+      const data = await res.json();
+
+      setStats({
+        totalPredictions: data.totalPredictions,
+        lastPrediction: data.lastPrediction,
+        riskLevel: data.riskLevel 
+          ? data.riskLevel.charAt(0).toUpperCase() + data.riskLevel.slice(1)
+          : "Low",
+        nextCheckup: data.nextCheckup
+      });
+
+    } catch (err) {
+      console.error("Error fetching dashboard stats:", err);
+    }
+  };
+
+  if (user?._id) fetchStats();
+  }, [user]);
 
   const quickActions = [
     {

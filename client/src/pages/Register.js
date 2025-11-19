@@ -52,7 +52,6 @@ const Register = () => {
   const benefits = [
     'AI-powered heart disease risk assessment',
     'Personalized diet and lifestyle recommendations',
-    'Access to nearby cardiologists and hospitals',
     'Secure health data storage and tracking',
     'Regular health monitoring and insights',
     'Professional medical guidance and support'

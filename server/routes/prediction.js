@@ -6,7 +6,7 @@ const path = require('path');
 const Tesseract = require('tesseract.js');
 const pdf = require('pdf-parse');
 const { body, validationResult } = require('express-validator');
-const Prediction = require('../models/Prediction');
+const Prediction = require('../models/prediction');
 const { protect } = require('../middleware/auth');
 
 const router = express.Router();
