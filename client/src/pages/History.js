@@ -145,7 +145,7 @@ const History = () => {
           </p>
         </div>
 
-        {/* Stats Cards */}
+        {/* Stats Cards */} 
         {stats && (
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
             <div className="bg-white rounded-lg shadow p-6">
@@ -239,7 +239,7 @@ const History = () => {
           </div>
         </div>
 
-        {/* Predictions List */}
+        {/* Predictions List  */}
         <div className="bg-white rounded-lg shadow">
           <div className="px-6 py-4 border-b border-gray-200">
             <h2 className="text-xl font-semibold text-gray-900">
