@@ -2,7 +2,7 @@ const express = require('express');
 const axios = require('axios');
 const { protect } = require('../middleware/auth');
 const User = require('../models/User');
-const Prediction = require('../models/Prediction');
+const Prediction = require('../models/prediction');
 
 const router = express.Router();
 

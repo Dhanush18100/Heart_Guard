@@ -11,483 +11,205 @@ const { protect } = require('../middleware/auth');
 
 const router = express.Router();
 
-// Configure multer for file uploads
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    const uploadDir = 'uploads/';
-    if (!fs.existsSync(uploadDir)) {
-      fs.mkdirSync(uploadDir, { recursive: true });
-    }
-    cb(null, uploadDir);
-  },
-  filename: (req, file, cb) => {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    cb(null, file.fieldname + '-' + uniqueSuffix + path.extname(file.originalname));
-  }
-});
 
-const upload = multer({
-  storage: storage,
-  limits: {
-    fileSize: parseInt(process.env.MAX_FILE_SIZE) || 10 * 1024 * 1024 // 10MB default
-  },
-  fileFilter: (req, file, cb) => {
-    const allowedTypes = /jpeg|jpg|png|pdf/;
-    const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
-    const mimetype = allowedTypes.test(file.mimetype);
+// const storage = multer.diskStorage({
+//   destination: (req, file, cb) => {
+//     const uploadDir = 'uploads/';
+//     if (!fs.existsSync(uploadDir)) {
+//       fs.mkdirSync(uploadDir, { recursive: true });
+//     }
+//     cb(null, uploadDir);
+//   },
+//   filename: (req, file, cb) => {
+//     const unique = Date.now() + '-' + Math.round(Math.random() * 1e9);
+//     cb(null, file.fieldname + '-' + unique + path.extname(file.originalname));
+//   }
+// });
 
-    if (mimetype && extname) {
-      return cb(null, true);
-    } else {
-      cb(new Error('Only image (JPEG, JPG, PNG) and PDF files are allowed'));
-    }
-  }
-});
+// const upload = multer({
+//   storage,
+//   limits: { fileSize: 10 * 1024 * 1024 },
+//   fileFilter: (req, file, cb) => {
+//     const allowed = /jpeg|jpg|png|pdf/;
+//     const validExt = allowed.test(path.extname(file.originalname).toLowerCase());
+//     const validMime = allowed.test(file.mimetype);
+//     validExt && validMime ? cb(null, true) : cb(new Error('File type not allowed'));
+//   }
+// });
 
-// Helper function to extract health data from text
+
+  //EXTRACT HEALTH DATA FROM TEXT
+
 const extractHealthData = (text) => {
   const data = {};
-  
-  // Age extraction
-  const ageMatch = text.match(/(?:age|Age|AGE)[\s:]*(\d+)/);
-  if (ageMatch) data.age = parseInt(ageMatch[1]);
-  
-  // Gender extraction
-  const genderMatch = text.match(/(?:gender|sex|Gender|Sex)[\s:]*([mfMF]|male|female|Male|Female)/i);
+
+  const match = (regex) => {
+    const m = text.match(regex);
+    return m ? parseInt(m[1]) : undefined;
+  };
+
+  data.age = match(/(?:age|Age|AGE)[\s:]*(\d+)/);
+  data.trestbps = match(/(?:blood pressure|BP|bp)[\s:]*(\d+)/);
+  data.chol = match(/(?:cholesterol|Chol|chol)[\s:]*(\d+)/);
+  data.thalach = match(/(?:heart rate|HR|hr|pulse)[\s:]*(\d+)/);
+
+  // Gender
+  const genderMatch = text.match(/(?:gender|sex)[\s:]*([mfMF]|male|female)/);
   if (genderMatch) {
-    const gender = genderMatch[1].toLowerCase();
-    data.sex = gender === 'm' || gender === 'male' ? 1 : 0;
+    const g = genderMatch[1].toLowerCase();
+    data.sex = g === 'm' || g === 'male' ? 1 : 0;
   }
-  
-  // Blood pressure extraction
-  const bpMatch = text.match(/(?:blood pressure|BP|bp)[\s:]*(\d+)/i);
-  if (bpMatch) data.trestbps = parseInt(bpMatch[1]);
-  
-  // Cholesterol extraction
-  const cholMatch = text.match(/(?:cholesterol|Chol|chol)[\s:]*(\d+)/i);
-  if (cholMatch) data.chol = parseInt(cholMatch[1]);
-  
-  // Blood sugar extraction
-  const bsMatch = text.match(/(?:blood sugar|glucose|sugar)[\s:]*(\d+)/i);
-  if (bsMatch) {
-    const sugar = parseInt(bsMatch[1]);
-    data.fbs = sugar > 120 ? 1 : 0;
-  }
-  
-  // Heart rate extraction
-  const hrMatch = text.match(/(?:heart rate|HR|hr|pulse)[\s:]*(\d+)/i);
-  if (hrMatch) data.thalach = parseInt(hrMatch[1]);
-  
-  // Default values for missing data
-  const defaults = {
-    cp: 0,        // Chest pain type
-    restecg: 0,   // ECG results
-    exang: 0,     // Exercise angina
-    oldpeak: 0,   // ST depression
-    slope: 0,     // ST slope
-    ca: 0,        // Vessels
-    thal: 0       // Thalassemia
+
+  // Defaults
+  return {
+    cp: 0, restecg: 0, exang: 0, oldpeak: 0, slope: 0, ca: 0, thal: 0,
+    ...data
   };
-  
-  return { ...defaults, ...data };
 };
 
-// Helper function to generate diet plan
+// DIET PLAN GENERATOR
+
 const generateDietPlan = (riskLevel, hasHeartDisease) => {
-  const basePlan = {
-    general: "Maintain a heart-healthy diet with regular exercise and stress management.",
-    foodsToInclude: [
-      "Fresh fruits and vegetables",
-      "Whole grains",
-      "Lean proteins (fish, chicken, legumes)",
-      "Healthy fats (olive oil, nuts, avocados)",
-      "Low-fat dairy products"
-    ],
-    foodsToAvoid: [
-      "Processed foods",
-      "High sodium foods",
-      "Saturated and trans fats",
-      "Added sugars",
-      "Excessive alcohol"
-    ]
+  const base = {
+    general: "Maintain heart-healthy diet.",
+    foodsToInclude: ["Vegetables", "Fruits", "Whole grains"],
+    foodsToAvoid: ["Trans fats", "Junk food"],
+    mealPlan: []
   };
 
-  if (riskLevel === 'high' || hasHeartDisease) {
-    return {
-      ...basePlan,
-      specific: "Strict low-sodium, low-cholesterol diet with emphasis on heart-protective foods.",
-      foodsToInclude: [
-        ...basePlan.foodsToInclude,
-        "Oily fish (salmon, mackerel)",
-        "Berries and dark chocolate (in moderation)",
-        "Green tea",
-        "Garlic and onions"
-      ],
-      foodsToAvoid: [
-        ...basePlan.foodsToAvoid,
-        "Red meat",
-        "Full-fat dairy",
-        "Fried foods",
-        "Canned soups and processed meats"
-      ],
-      mealPlan: [
-        "Breakfast: Oatmeal with berries and nuts",
-        "Lunch: Grilled salmon with quinoa and vegetables",
-        "Dinner: Lentil soup with whole grain bread",
-        "Snacks: Apple with almond butter, carrot sticks"
-      ]
-    };
-  } else if (riskLevel === 'moderate') {
-    return {
-      ...basePlan,
-      specific: "Moderate heart-healthy diet with regular monitoring of key health metrics.",
-      mealPlan: [
-        "Breakfast: Greek yogurt with granola and fruit",
-        "Lunch: Turkey sandwich on whole grain bread",
-        "Dinner: Baked chicken with brown rice and vegetables",
-        "Snacks: Mixed nuts, fruit smoothie"
-      ]
-    };
-  } else {
-    return {
-      ...basePlan,
-      specific: "Maintain current healthy habits with focus on prevention.",
-      mealPlan: [
-        "Breakfast: Smoothie bowl with granola",
-        "Lunch: Mediterranean salad with olive oil dressing",
-        "Dinner: Grilled fish with sweet potato and greens",
-        "Snacks: Hummus with vegetables, dark chocolate"
-      ]
-    };
+  if (riskLevel === "high") {
+    return { ...base, specific: "Strict low sodium diet." };
+  } else if (riskLevel === "moderate") {
+    return { ...base, specific: "Moderate heart-healthy plan." };
   }
+  return { ...base, specific: "Maintain healthy habits." };
 };
 
-// @desc    Make heart disease prediction from manual input
-// @route   POST /api/prediction/manual
-// @access  Private
-router.post('/manual', protect, [
-  body('age').isInt({ min: 1, max: 120 }).withMessage('Age must be between 1 and 120'),
-  body('sex').isIn([0, 1]).withMessage('Sex must be 0 (Female) or 1 (Male)'),
-  body('cp').isIn([0, 1, 2, 3]).withMessage('Chest pain type must be 0-3'),
-  body('trestbps').isInt({ min: 80, max: 300 }).withMessage('Blood pressure must be between 80-300'),
-  body('chol').isInt({ min: 100, max: 600 }).withMessage('Cholesterol must be between 100-600'),
-  body('fbs').isIn([0, 1]).withMessage('Fasting blood sugar must be 0 or 1'),
-  body('restecg').isIn([0, 1, 2]).withMessage('ECG results must be 0-2'),
-  body('thalach').isInt({ min: 60, max: 250 }).withMessage('Heart rate must be between 60-250'),
-  body('exang').isIn([0, 1]).withMessage('Exercise angina must be 0 or 1'),
-  body('oldpeak').isFloat({ min: 0, max: 10 }).withMessage('ST depression must be between 0-10'),
-  body('slope').isIn([0, 1, 2]).withMessage('ST slope must be 0-2'),
-  body('ca').isIn([0, 1, 2, 3, 4]).withMessage('Vessels must be 0-4'),
-  body('thal').isIn([0, 1, 2, 3]).withMessage('Thalassemia must be 0-3')
-], async (req, res) => {
-  try {
-    // Check for validation errors
+/*****************************
+ * ⭐ FIXED FALLBACK ML MODEL
+ *****************************/
+const fallbackPrediction = (input) => {
+  const {
+    age = 50, sex = 0, cp = 0, trestbps = 120, chol = 200,
+    thalach = 150, exang = 0, oldpeak = 0
+  } = input;
+
+  // Balanced scoring — now allows low-risk scores too
+  let score =
+    -1.2 +
+    0.03 * (age - 45) +
+    0.02 * (trestbps - 120) +
+    0.015 * (chol - 200) +
+    -0.03 * (thalach - 150) +
+    (sex === 1 ? 0.25 : -0.1) +
+    (cp > 1 ? 0.15 : -0.05) +
+    (exang === 1 ? 0.3 : -0.1) +
+    (oldpeak * 0.5);
+
+  // Sigmoid conversion → Probability between 0.05–0.95
+  let prob = 1 / (1 + Math.exp(-score));
+  prob = Math.max(0.05, Math.min(0.95, prob));
+
+  const hasHeartDisease = prob > 0.5;
+  let riskLevel = prob < 0.3 ? "low" : prob < 0.7 ? "moderate" : "high";
+
+  return { prob, hasHeartDisease, riskLevel };
+};
+
+/*****************************
+ * ⭐ FIXED MANUAL PREDICTION ROUTE
+ *****************************/
+router.post(
+  '/manual',
+  protect,
+  [
+    body('age').isInt({ min: 1, max: 120 }),
+    body('sex').isIn([0, 1]),
+    body('cp').isIn([0, 1, 2, 3]),
+    body('trestbps').isInt(),
+    body('chol').isInt(),
+    body('thalach').isInt(),
+  ],
+  async (req, res) => {
     const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({ 
-        message: 'Validation failed', 
-        errors: errors.array() 
-      });
-    }
+    if (!errors.isEmpty())
+      return res.status(400).json({ errors: errors.array() });
 
     const inputData = req.body;
-
-    // Call Python ML model
-    const options = {
-      mode: 'json',
-      pythonPath: process.env.PYTHON_PATH || 'python',
-      pythonOptions: ['-u'],
-      scriptPath: path.resolve(__dirname, '..', '..', 'ml_service'),
-      args: [JSON.stringify(inputData)]
-    };
-
     let responded = false;
-    const timer = setTimeout(async () => {
+
+    // Timeout fallback
+    const timeout = setTimeout(async () => {
       if (responded) return;
-      try {
-        const f = inputData;
-        const risk = (
-          (f.age > 60 ? 0.2 : 0) +
-          (f.sex === 1 ? 0.1 : 0) +
-          (f.cp > 1 ? 0.2 : 0) +
-          (f.trestbps > 140 ? 0.2 : 0) +
-          (f.chol > 250 ? 0.2 : 0) +
-          (f.thalach < 120 ? 0.2 : 0) +
-          (f.exang === 1 ? 0.2 : 0) +
-          (f.oldpeak > 2 ? 0.2 : 0)
-        );
-        const probability = Math.max(0, Math.min(0.9, risk));
-        const hasHeartDisease = probability > 0.5;
-        let riskLevel = 'low';
-        if (probability > 0.7) riskLevel = 'high';
-        else if (probability > 0.3) riskLevel = 'moderate';
-        const dietPlan = generateDietPlan(riskLevel, hasHeartDisease);
-        const predictionRecord = await Prediction.create({
-          user: req.user._id,
-          inputData,
-          predictionResult: { hasHeartDisease, probability, riskLevel },
-          dietPlan
-        });
+      responded = true;
+
+      const { prob, hasHeartDisease, riskLevel } = fallbackPrediction(inputData);
+      const dietPlan = generateDietPlan(riskLevel, hasHeartDisease);
+
+      const prediction = await Prediction.create({
+        user: req.user._id,
+        inputData,
+        predictionResult: { probability: prob, hasHeartDisease, riskLevel },
+        dietPlan
+      });
+
+      return res.json({ prediction, message: "Timeout fallback" });
+    }, 8000);
+
+    // Run Python Model
+    PythonShell.run(
+      "predict.py",
+      {
+        mode: "json",
+        pythonPath: process.env.PYTHON_PATH || "python",
+        scriptPath: path.resolve(__dirname, "..", "..", "ml_service"),
+        args: [JSON.stringify(inputData)]
+      },
+      async (err, results) => {
+        if (responded) return;
         responded = true;
-        return res.json({ prediction: predictionRecord, message: 'Prediction completed (timeout fallback)' });
-      } catch (e) {
-        responded = true;
-        return res.status(500).json({ message: 'Prediction timeout' });
-      }
-    }, 10000);
+        clearTimeout(timeout);
 
-    PythonShell.run('predict.py', options, async (err, results) => {
-      if (err || !results || results.length === 0) {
-        console.error('Python ML model error:', err);
-        try {
-          // Node.js fallback risk estimate (sigmoid of weighted sum)
-          const f = inputData;
-          const toNum = (v, d=0) => (typeof v === 'number' && !isNaN(v) ? v : d);
-          const age = toNum(f.age, 50);
-          const sex = toNum(f.sex, 0);
-          const cp = toNum(f.cp, 0);
-          const trestbps = toNum(f.trestbps, 120);
-          const chol = toNum(f.chol, 200);
-          const thalach = toNum(f.thalach, 150);
-          const exang = toNum(f.exang, 0);
-          const oldpeak = toNum(f.oldpeak, 0);
-
-          const score = (
-            -0.5 +
-            0.03 * (age - 50) +
-            0.02 * (trestbps - 120) +
-            0.01 * (chol - 200) +
-            -0.02 * (thalach - 150) +
-            0.25 * (sex === 1 ? 1 : 0) +
-            0.20 * (cp > 1 ? 1 : 0) +
-            0.40 * (exang === 1 ? 1 : 0) +
-            0.50 * oldpeak
-          );
-          const probability = Math.min(0.95, Math.max(0.05, 1 / (1 + Math.exp(-score))));
-          const hasHeartDisease = probability > 0.5;
-          let riskLevel = 'low';
-          if (probability > 0.7) riskLevel = 'high';
-          else if (probability > 0.3) riskLevel = 'moderate';
-
+        if (err || !Array.isArray(results) || !results[0]?.probability) {
+          // Use fallback
+          const { prob, hasHeartDisease, riskLevel } = fallbackPrediction(inputData);
           const dietPlan = generateDietPlan(riskLevel, hasHeartDisease);
-          const predictionRecord = await Prediction.create({
+
+          const prediction = await Prediction.create({
             user: req.user._id,
             inputData,
-            predictionResult: { hasHeartDisease, probability, riskLevel },
+            predictionResult: { probability: prob, hasHeartDisease, riskLevel },
             dietPlan
           });
 
-          clearTimeout(timer);
-          responded = true;
-          return res.json({ prediction: predictionRecord, message: 'Prediction completed (fallback model)' });
-        } catch (fallbackError) {
-          console.error('Fallback prediction error:', fallbackError);
-          clearTimeout(timer);
-          responded = true;
-          return res.status(500).json({ message: 'Error in ML model prediction' });
+          return res.json({ prediction, message: "Fallback model used" });
         }
-      }
 
-      try {
-        clearTimeout(timer);
-        responded = true;
-        const prediction = results[0];
-        const hasHeartDisease = prediction.prediction === 1;
-        const probability = prediction.probability;
-        
-        // Determine risk level
-        let riskLevel = 'low';
-        if (probability > 0.7) riskLevel = 'high';
-        else if (probability > 0.3) riskLevel = 'moderate';
+        // Python success
+        const py = results[0];
+        const prob = Math.max(0.05, Math.min(0.95, Number(py.probability)));
 
-        // Generate diet plan
+        const hasHeartDisease = prob > 0.5;
+        const riskLevel = prob < 0.3 ? "low" : prob < 0.7 ? "moderate" : "high";
         const dietPlan = generateDietPlan(riskLevel, hasHeartDisease);
 
-        // Save prediction to database
-        const predictionRecord = await Prediction.create({
+        const prediction = await Prediction.create({
           user: req.user._id,
           inputData,
-          predictionResult: {
-            hasHeartDisease,
-            probability,
-            riskLevel
-          },
+          predictionResult: { probability: prob, hasHeartDisease, riskLevel },
           dietPlan
         });
 
-        return res.json({
-          prediction: predictionRecord,
-          message: 'Prediction completed successfully'
-        });
-      } catch (error) {
-        console.error('Prediction processing error:', error);
-        clearTimeout(timer);
-        responded = true;
-        return res.status(500).json({ message: 'Error processing prediction results' });
+        res.json({ prediction, message: "Prediction successful" });
       }
-    });
-  } catch (error) {
-    console.error('Manual prediction error:', error);
-    res.status(500).json({ message: 'Server error during prediction' });
+    );
   }
-});
+);
 
-// @desc    Make heart disease prediction from uploaded file
-// @route   POST /api/prediction/upload
-// @access  Private
-router.post('/upload', protect, upload.single('medicalReport'), async (req, res) => {
-  try {
-    if (!req.file) {
-      return res.status(400).json({ message: 'Please upload a medical report file' });
-    }
-
-    let extractedText = '';
-    const filePath = req.file.path;
-
-    // Extract text based on file type
-    if (req.file.mimetype === 'application/pdf') {
-      const dataBuffer = fs.readFileSync(filePath);
-      const data = await pdf(dataBuffer);
-      extractedText = data.text;
-    } else {
-      // Image file - use Tesseract OCR
-      const result = await Tesseract.recognize(filePath, 'eng');
-      extractedText = result.data.text;
-    }
-
-    // Extract health data from text
-    const extractedData = extractHealthData(extractedText);
-
-    // Check if we have enough data for prediction
-    const requiredFields = ['age', 'sex', 'trestbps', 'chol', 'thalach'];
-    const missingFields = requiredFields.filter(field => extractedData[field] === undefined);
-
-    if (missingFields.length > 0) {
-      return res.status(400).json({ 
-        message: `Unable to extract required data. Missing: ${missingFields.join(', ')}`,
-        extractedData,
-        extractedText: extractedText.substring(0, 500) // First 500 chars for debugging
-      });
-    }
-
-    // Call Python ML model with extracted data
-    const options = {
-      mode: 'json',
-      pythonPath: process.env.PYTHON_PATH || 'python',
-      pythonOptions: ['-u'],
-      scriptPath: path.resolve(__dirname, '..', '..', 'ml_service'),
-      args: [JSON.stringify(extractedData)]
-    };
-
-    PythonShell.run('predict.py', options, async (err, results) => {
-      if (err) {
-        console.error('Python ML model error:', err);
-        return res.status(500).json({ message: 'Error in ML model prediction' });
-      }
-
-      try {
-        const prediction = results[0];
-        const hasHeartDisease = prediction.prediction === 1;
-        const probability = prediction.probability;
-        
-        // Determine risk level
-        let riskLevel = 'low';
-        if (probability > 0.7) riskLevel = 'high';
-        else if (probability > 0.3) riskLevel = 'moderate';
-
-        // Generate diet plan
-        const dietPlan = generateDietPlan(riskLevel, hasHeartDisease);
-
-        // Save prediction to database
-        const predictionRecord = await Prediction.create({
-          user: req.user._id,
-          inputData: extractedData,
-          predictionResult: {
-            hasHeartDisease,
-            probability,
-            riskLevel
-          },
-          dietPlan,
-          uploadedFile: {
-            filename: req.file.filename,
-            originalName: req.file.originalname,
-            mimetype: req.file.mimetype,
-            size: req.file.size,
-            path: req.file.path
-          }
-        });
-
-        res.json({
-          prediction: predictionRecord,
-          message: 'Prediction completed successfully from uploaded file',
-          extractedData
-        });
-      } catch (error) {
-        console.error('File prediction processing error:', error);
-        res.status(500).json({ message: 'Error processing prediction results' });
-      }
-    });
-  } catch (error) {
-    console.error('File upload prediction error:', error);
-    res.status(500).json({ message: 'Server error during file prediction' });
-  }
-});
-
-// @desc    Get user's prediction history
-// @route   GET /api/prediction/history
-// @access  Private
+// Get History
 router.get('/history', protect, async (req, res) => {
-  try {
-    const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 10;
-    const skip = (page - 1) * limit;
-
-    const predictions = await Prediction.find({ user: req.user._id })
-      .sort({ createdAt: -1 })
-      .skip(skip)
-      .limit(limit);
-
-    const total = await Prediction.countDocuments({ user: req.user._id });
-
-    res.json({
-      predictions,
-      pagination: {
-        currentPage: page,
-        totalPages: Math.ceil(total / limit),
-        totalItems: total,
-        itemsPerPage: limit
-      }
-    });
-  } catch (error) {
-    console.error('History fetch error:', error);
-    res.status(500).json({ message: 'Server error while fetching history' });
-  }
-});
-
-// @desc    Get specific prediction by ID
-// @route   GET /api/prediction/:id
-// @access  Private
-router.get('/:id', protect, async (req, res) => {
-  try {
-    const prediction = await Prediction.findById(req.params.id)
-      .populate('user', 'name email')
-      .populate('doctorRecommendations.doctor', 'name email role');
-
-    if (!prediction) {
-      return res.status(404).json({ message: 'Prediction not found' });
-    }
-
-    // Check if user owns this prediction or is admin/doctor
-    if (prediction.user._id.toString() !== req.user._id.toString() && 
-        !['admin', 'doctor'].includes(req.user.role)) {
-      return res.status(403).json({ message: 'Not authorized to view this prediction' });
-    }
-
-    res.json(prediction);
-  } catch (error) {
-    console.error('Prediction fetch error:', error);
-    res.status(500).json({ message: 'Server error while fetching prediction' });
-  }
+  const predictions = await Prediction.find({ user: req.user._id }).sort({ createdAt: -1 });
+  res.json({ predictions });
 });
 
 module.exports = router;
