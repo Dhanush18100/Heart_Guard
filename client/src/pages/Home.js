@@ -27,15 +27,16 @@ const Home = () => {
     {
       icon: FileText,
       title: 'Medical Report Analysis',
-      description: 'Upload PDF or image reports for automatic data extraction and instant analysis.',
+      description: 'Enter the medical details for clear and precize analysis.',
       color: 'text-green-600'
     },
-    {
-      icon: Users,
-      title: 'Expert Recommendations',
-      description: 'Get personalized diet plans and find nearby cardiologists for professional consultation.',
-      color: 'text-purple-600'
-    },
+   {
+  icon: Users,
+  title: 'Health Insights',
+  description: 'Get accurate health risk insights based on the data you provide.',
+  color: 'text-purple-600'
+},
+
     {
       icon: BarChart3,
       title: 'Health Tracking',
