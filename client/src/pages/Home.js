@@ -1,12 +1,12 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { 
-  Heart, 
-  Shield, 
-  Brain, 
-  Users, 
-  BarChart3, 
+import {
+  Heart,
+  Shield,
+  Brain,
+  Users,
+  BarChart3,
   FileText,
   Zap,
   CheckCircle,
@@ -30,12 +30,12 @@ const Home = () => {
       description: 'Enter the medical details for clear and precize analysis.',
       color: 'text-green-600'
     },
-   {
-  icon: Users,
-  title: 'Health Insights',
-  description: 'Get accurate health risk insights based on the data you provide.',
-  color: 'text-purple-600'
-},
+    {
+      icon: Users,
+      title: 'Health Insights',
+      description: 'Get accurate health risk insights based on the data you provide.',
+      color: 'text-purple-600'
+    },
 
     {
       icon: BarChart3,
@@ -76,17 +76,17 @@ const Home = () => {
                 <Heart className="h-12 w-12 text-primary-600" />
               </div>
             </div>
-            
+
             <h1 className="text-4xl md:text-6xl font-bold text-gray-900 mb-6">
               Protect Your Heart with{' '}
               <span className="text-gradient">AI-Powered</span> Insights
             </h1>
-            
+
             <p className="text-xl text-gray-600 mb-8 max-w-3xl mx-auto">
-              Advanced machine learning technology combined with medical expertise to predict heart disease risk 
+              Advanced machine learning technology combined with medical expertise to predict heart disease risk
               and provide personalized health recommendations. Your heart health, our priority.
             </p>
-            
+
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               {user ? (
                 <Link
@@ -116,7 +116,7 @@ const Home = () => {
             </div>
           </div>
         </div>
-        
+
         {/* Background decoration */}
         <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none">
           <div className="absolute -top-40 -right-40 w-80 h-80 bg-primary-100 rounded-full opacity-20"></div>
@@ -132,11 +132,11 @@ const Home = () => {
               Why Choose HeartGuard?
             </h2>
             <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-              Our comprehensive heart disease prediction system combines cutting-edge technology 
+              Our comprehensive heart disease prediction system combines cutting-edge technology
               with medical expertise to provide you with the most accurate health insights.
             </p>
           </div>
-          
+
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {features.map((feature, index) => (
               <div
@@ -169,7 +169,7 @@ const Home = () => {
               Get your heart disease risk assessment in just three simple steps
             </p>
           </div>
-          
+
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             <div className="text-center">
               <div className="w-16 h-16 bg-primary-100 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -182,7 +182,7 @@ const Home = () => {
                 Enter your health metrics manually or upload medical reports for automatic data extraction
               </p>
             </div>
-            
+
             <div className="text-center">
               <div className="w-16 h-16 bg-secondary-100 rounded-full flex items-center justify-center mx-auto mb-4">
                 <span className="text-2xl font-bold text-secondary-600">2</span>
@@ -194,7 +194,7 @@ const Home = () => {
                 Our advanced ML model analyzes your data and predicts heart disease risk with high accuracy
               </p>
             </div>
-            
+
             <div className="text-center">
               <div className="w-16 h-16 bg-success-100 rounded-full flex items-center justify-center mx-auto mb-4">
                 <span className="text-2xl font-bold text-success-600">3</span>
@@ -219,10 +219,10 @@ const Home = () => {
                 Take Control of Your Heart Health
               </h2>
               <p className="text-lg text-gray-600 mb-8">
-                Our AI-powered system provides comprehensive heart disease risk assessment, 
+                Our AI-powered system provides comprehensive heart disease risk assessment,
                 personalized recommendations, and access to medical professionals - all in one place.
               </p>
-              
+
               <div className="space-y-4">
                 {benefits.map((benefit, index) => (
                   <div key={index} className="flex items-start">
@@ -231,7 +231,7 @@ const Home = () => {
                   </div>
                 ))}
               </div>
-              
+
               <div className="mt-8">
                 {user ? (
                   <Link
@@ -252,7 +252,7 @@ const Home = () => {
                 )}
               </div>
             </div>
-            
+
             <div className="relative">
               <div className="card p-8 shadow-soft">
                 <div className="text-center mb-6">
@@ -263,7 +263,7 @@ const Home = () => {
                     Sample Prediction
                   </h3>
                 </div>
-                
+
                 <div className="space-y-4">
                   <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
                     <span className="text-gray-700">Risk Level:</span>
@@ -278,7 +278,7 @@ const Home = () => {
                     <span className="text-gray-900 font-semibold">Diet + Exercise</span>
                   </div>
                 </div>
-                
+
                 <div className="mt-6 p-4 bg-success-50 rounded-lg border border-success-200">
                   <p className="text-sm text-success-800">
                     <strong>Tip:</strong> Regular monitoring and lifestyle changes can significantly reduce your risk.
@@ -297,10 +297,10 @@ const Home = () => {
             Ready to Protect Your Heart?
           </h2>
           <p className="text-xl text-primary-100 mb-8">
-            Join thousands of users who are already taking control of their heart health 
+            Join thousands of users who are already taking control of their heart health
             with our AI-powered prediction system.
           </p>
-          
+
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             {user ? (
               <Link
@@ -328,7 +328,7 @@ const Home = () => {
               </>
             )}
           </div>
-          
+
           <p className="text-primary-200 mt-6 text-sm">
             No credit card required • Free to use • Secure & private
           </p>
