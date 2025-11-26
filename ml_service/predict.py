@@ -8,9 +8,12 @@ import numpy as np
 MODEL_FILE = "heart_disease_model.pkl"
 SCALER_FILE = "heart_disease_scaler.pkl"
 
+
 def resolve_path(filename):
     base = os.path.dirname(os.path.abspath(__file__))
     return os.path.join(base, filename)
+
+
 
 # PREPROCESS INPUT
 def preprocess_input(data):
