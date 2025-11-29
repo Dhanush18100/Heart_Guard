@@ -30,7 +30,7 @@ X_train_scaled = scaler.fit_transform(X_train)
 X_test_scaled = scaler.transform(X_test)
 
 
-# 4. Improved Random Forest Model 
+# 4. Random Forest Model 
 rf = RandomForestClassifier(
     n_estimators=400,        # more trees = better learning
     max_depth=None,          # allow deeper trees

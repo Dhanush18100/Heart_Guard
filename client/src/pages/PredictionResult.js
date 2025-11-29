@@ -298,7 +298,7 @@ const PredictionResult = () => {
         </div>
 
         {/* Nearby Doctors */}
-        <div className="bg-white rounded-lg shadow-lg p-8">
+        {/* <div className="bg-white rounded-lg shadow-lg p-8">
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center">
               <div className="p-2 bg-blue-100 rounded-lg mr-4">
@@ -375,7 +375,7 @@ const PredictionResult = () => {
               </button>
             </div>
           )}
-        </div>
+        </div> */}
 
         {/* Next Steps */}
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 mt-8">
