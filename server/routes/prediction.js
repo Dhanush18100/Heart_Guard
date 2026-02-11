@@ -85,9 +85,6 @@ const generateDietPlan = (riskLevel, hasHeartDisease) => {
   return { ...base, specific: "Maintain healthy habits." };
 };
 
-/*****************************
- * ⭐ FIXED FALLBACK ML MODEL
- *****************************/
 const fallbackPrediction = (input) => {
   const {
     age = 50, sex = 0, cp = 0, trestbps = 120, chol = 200,
