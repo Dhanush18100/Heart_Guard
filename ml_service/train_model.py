@@ -11,6 +11,7 @@ import seaborn as sns
 from sklearn.svm import SVC
 
 
+
 # 1. Load Dataset
 df = pd.read_csv("heart.csv")
 
